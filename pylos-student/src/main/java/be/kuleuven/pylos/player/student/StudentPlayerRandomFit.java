@@ -25,8 +25,9 @@ public class StudentPlayerRandomFit extends PylosPlayer{
             }
         }
         PylosSphere myReserveSphere = board.getReserve(this);
-        int randomIndex = (int) Math.random() * usableLocations.size();
-        PylosLocation location = usableLocations.get(randomIndex);
+        Random random = new Random();
+        int index = random.nextInt(usableLocations.size());
+        PylosLocation location = usableLocations.get(index);
         game.moveSphere(myReserveSphere,location);
     }
 
