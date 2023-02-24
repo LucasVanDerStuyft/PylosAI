@@ -6,8 +6,7 @@ import be.kuleuven.pylos.game.PylosLocation;
 import be.kuleuven.pylos.game.PylosSphere;
 import be.kuleuven.pylos.player.PylosPlayer;
 
-import java.util.ArrayList;
-import java.util.Random;
+import java.util.*;
 
 /**
  * Created by Ine on 5/05/2015.
@@ -34,8 +33,13 @@ public class StudentPlayerRandomFit extends PylosPlayer{
     @Override
     public void doRemove(PylosGameIF game, PylosBoard board) {
 		/* removeSphere a random sphere */
+        List<PylosSphere> allSpheres = Arrays.asList(board.getSpheres(this));
+        List<PylosSphere> removableSpheres = new ArrayList<>(allSpheres);
+        removableSpheres.removeIf(s -> s.isReserve() || s.getLocation().hasAbove());
 
-
+        PylosSphere sphereToRemove;
+        sphereToRemove = removableSpheres.size() == 1 ? removableSpheres.get(0) : removableSpheres.get(getRandom().nextInt(removableSpheres.size() - 1));
+        game.removeSphere(sphereToRemove);
     }
 
     @Override
