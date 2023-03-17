@@ -391,8 +391,9 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
         //hoe minder witte spheres, hoe beter want dan moet zwart vroeger alles op 't bord leggen en winnen wij uiteindelijk
         //deze score moet natuurlijk uiteindelijk rekening houden met vierkanten die gemaakt kunnen worden en dergelijke
 
-        int score = board.getSpheres(this).length - board.getSpheres(this.OTHER).length;
+        //int score = board.getSpheres(this).length - board.getSpheres(this.OTHER).length;
         //int score = board.getSpheres(this.OTHER).length - board.getSpheres(this).length;
+        int score = board.getReservesSize(PLAYER_COLOR) - board.getReservesSize(PLAYER_COLOR.other());
 
         //kijken hoeveel "bijna vierkanten" er gemaakt zijn (dus 3 spheres in een vierkant)
         List<PylosLocation> allUsableLocations = Arrays.asList(board.getLocations()).stream().filter(x -> x.isUsable()).collect(Collectors.toList());
@@ -407,11 +408,11 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
         }
 
 
-        score = score + (squareDifference * 2);
+        score = score - (squareDifference * 20);
 
-        //return score;
+        return score;
 
-        return board.getReservesSize(PLAYER_COLOR) - board.getReservesSize(PLAYER_COLOR.other());
+        //return board.getReservesSize(PLAYER_COLOR) - board.getReservesSize(PLAYER_COLOR.other());
     }
 
     public List<PylosLocation> searchForSquares(List<PylosLocation> allowedLocations, PylosPlayer player){
