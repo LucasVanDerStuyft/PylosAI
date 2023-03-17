@@ -25,7 +25,6 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
         int bestEval = -INFINITY;
         PylosSphere bestSphere = null;
         PylosLocation bestLocation = null;
-        int eval = 0;
 
         for(PylosSphere sphere : Arrays.asList(board.getSpheres(this)).stream().filter(x -> !x.isReserve()).collect(Collectors.toList())){
 
@@ -38,7 +37,7 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
                     PylosLocation previousLocation = sphere.getLocation();
 
                     simulator.moveSphere(sphere, location);
-                    eval = alphaBeta(game, board, MAX_DEPTH, -INFINITY, INFINITY, false);
+                    int eval = alphaBeta(game, board, MAX_DEPTH, -INFINITY, INFINITY, false);
                     simulator.undoMoveSphere(sphere, previousLocation, PylosGameState.MOVE, sphere.PLAYER_COLOR);
 
                     if (eval >= bestEval) {
@@ -59,7 +58,7 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
             PylosSphere reserveSphere = board.getReserve(simulator.getColor());
 
             simulator.moveSphere(reserveSphere, location);
-            eval = alphaBeta(game, board, MAX_DEPTH, -INFINITY, INFINITY, false);
+            int eval = alphaBeta(game, board, MAX_DEPTH, -INFINITY, INFINITY, false);
             simulator.undoAddSphere(reserveSphere, PylosGameState.MOVE, PLAYER_COLOR);
 
             if (eval >= bestEval) {
@@ -83,7 +82,6 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
 
         int bestEval = -INFINITY;
         PylosSphere bestSphere = null;
-        int eval = 0;
 
         //List<PylosSphere> usableSpheres = Arrays.asList(board.getSpheres(this));
         //Collections.shuffle(usableSpheres);
@@ -95,7 +93,7 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
 
                 PylosLocation ploc = sphere.getLocation();
                 simulator.removeSphere(sphere);
-                eval = alphaBeta(game, board, MAX_DEPTH, -INFINITY, INFINITY, false);
+                int eval = alphaBeta(game, board, MAX_DEPTH, -INFINITY, INFINITY, false);
                 simulator.undoRemoveFirstSphere(sphere, ploc, PylosGameState.REMOVE_FIRST, this.PLAYER_COLOR);
 
                 if (eval >= bestEval) {
@@ -174,31 +172,6 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
 
                 case MOVE:
 
-                    /*
-                    for (Move move : getLegalMoves(board, this).stream().filter(s -> !s.sphere.isReserve()).collect(Collectors.toList())) {
-
-                        try{
-                            beforeMove = simulator.getColor();
-
-                            if(move.sphere.PLAYER_COLOR == simulator.getColor())    {
-                                simulator.moveSphere(move.sphere, move.location);
-                                eval = alphaBeta(game, board, depth-1, alpha, beta, false);
-                                simulator.undoMoveSphere(move.sphere, move.previousLocation, PylosGameState.MOVE, move.sphere.PLAYER_COLOR);
-                            }
-
-                            afterMove = simulator.getColor();
-
-                        }catch(AssertionError ex){
-                            System.out.println(ex.toString());
-                        }
-                        maxEval = Math.max(maxEval, eval);
-                        alpha = Math.max(alpha, eval);
-                        if (beta <= alpha) {
-                            if(debugInfo) System.out.println("Pruning at move");
-                            break;
-                        }
-                    }
-                    */
                     for(PylosSphere sphere : Arrays.asList(board.getSpheres(this)).stream().filter(x -> !x.isReserve()).collect(Collectors.toList())){
 
                         List<PylosLocation> allUsableLocations = Arrays.asList(board.getLocations()).stream().filter(x -> x.isUsable()).collect(Collectors.toList());
@@ -308,68 +281,53 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
 
                 case MOVE:
 
-                    for (Move move : getLegalMoves(board, this.OTHER).stream().filter(s -> !s.sphere.isReserve()).collect(Collectors.toList())) {
+                    for(PylosSphere sphere : Arrays.asList(board.getSpheres(this.OTHER)).stream().filter(x -> !x.isReserve()).collect(Collectors.toList())){
 
-                        try {
+                        List<PylosLocation> allUsableLocations = Arrays.asList(board.getLocations()).stream().filter(x -> x.isUsable()).collect(Collectors.toList());
+                        Collections.shuffle(allUsableLocations, new Random(randomSeed));
 
-                            if(move.sphere.PLAYER_COLOR == simulator.getColor()) {
-                                simulator.moveSphere(move.sphere, move.location);
-                                eval = alphaBeta(game, board, depth - 1, alpha, beta, true);
-                                simulator.undoMoveSphere(move.sphere, move.previousLocation, PylosGameState.MOVE, move.sphere.PLAYER_COLOR.other());
+                        for(PylosLocation location : allUsableLocations){
+
+                            if(sphere.canMoveTo(location)){
+                                PylosLocation previousLocation = sphere.getLocation();
+
+                                if(sphere.PLAYER_COLOR == simulator.getColor()) {
+                                    simulator.moveSphere(sphere, location);
+                                    eval = alphaBeta(game, board, depth - 1, alpha, beta, true);
+                                    simulator.undoMoveSphere(sphere, previousLocation, PylosGameState.MOVE, sphere.PLAYER_COLOR.other());
+                                }
+                                minEval = Math.min(minEval, eval);
+                                beta = Math.min(beta, eval);
+                                if (beta <= alpha) {
+                                    if(debugInfo) System.out.println("Pruning at move");
+                                    break;
+                                }
                             }
-
-                        }catch(AssertionError ex){
-                            System.out.println(ex.toString());
-                        }
-
-                        minEval = Math.min(minEval, eval);
-                        beta = Math.min(beta, eval);
-                        if (beta <= alpha) {
-                            if(debugInfo) System.out.println("Pruning at move");
-                            break;
                         }
                     }
-                    //try to move reserve spheres
-                    /*
-                    for (Move move : getLegalMoves(board, this).stream().filter(s -> s.sphere.isReserve()).collect(Collectors.toList())) {
-
-                        try {
-
-                            simulator.moveSphere(move.sphere, move.location);
-                            eval = alphaBeta(game, board, depth-1, alpha, beta, true);
-                            simulator.undoAddSphere(move.sphere, PylosGameState.MOVE, move.sphere.PLAYER_COLOR);
-
-                            //System.out.println("Successfully removed reserve sphere");
-                        }catch(AssertionError ex){
-                            System.out.println(ex.toString());
-                        }
-
-                        minEval = Math.min(minEval, eval);
-                        beta = Math.min(beta, eval);
-                        if (beta <= alpha) {
-                            System.out.println("Pruning at add reserve");
-                            break;
-                        }
-                    }
-                    */
 
                     //try to move reserve spheres
-                    for(PylosLocation location : Arrays.asList(board.getLocations()).stream().filter(x -> x.isUsable()).collect(Collectors.toList())){
+                    List<PylosLocation> allUsableLocations = Arrays.asList(board.getLocations()).stream().filter(x -> x.isUsable()).collect(Collectors.toList());
+                    Collections.shuffle(allUsableLocations, new Random(randomSeed));
+
+                    for(PylosLocation location : allUsableLocations){
+                        //for(PylosLocation location : Arrays.asList(board.getLocations()).stream().filter(x -> x.isUsable()).collect(Collectors.toList())){
 
                         PylosSphere reserveSphere = board.getReserve(simulator.getColor());
-                        PylosLocation prevLocation = reserveSphere.getLocation();
 
                         simulator.moveSphere(reserveSphere, location);
-                        eval = alphaBeta(game, board, depth - 1, alpha, beta, false);
+                        eval = alphaBeta(game, board, depth - 1, alpha, beta, true);
                         simulator.undoAddSphere(reserveSphere, PylosGameState.MOVE, reserveSphere.PLAYER_COLOR.other());
 
                         minEval = Math.min(minEval, eval);
-                        alpha = Math.max(alpha, eval);
+                        beta = Math.min(beta, eval);
                         if (beta <= alpha) {
-                            if(debugInfo) System.out.println("Pruning at add reserve NEW2");
+                            if(debugInfo) System.out.println("Pruning at add reserve NEW");
                             break;
                         }
                     }
+
+
                     break;
 
                 case REMOVE_FIRST:
@@ -422,44 +380,8 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
             }
 
             return minEval;
-            //return Math.min(minEval, minEval2);
+
         }
-    }
-
-    private List<Move> getLegalMoves(PylosBoard board, PylosPlayer player){
-
-        List<Move> allPossibleMoves = new ArrayList<>();
-
-        List<PylosLocation> usableLocations = new ArrayList<>();
-        List<PylosSphere> usableSpheres = new ArrayList<>();
-
-        //for(PylosLocation location: board.getLocations()){
-        for(PylosLocation location: board.getLocations()){
-            if(location.isUsable()){
-                for(PylosSphere sphere: board.getSpheres(player.PLAYER_COLOR)) {
-                    if(sphere.canMoveTo(location)) {
-                        if (!usableSpheres.contains(sphere)) usableSpheres.add(sphere);
-                        if (!usableLocations.contains(location)) usableLocations.add(location);
-
-                        MoveType type = null;
-                        if(sphere.isReserve()){
-                            type = MoveType.ADD;
-                        }
-                        else{
-                            type = MoveType.MOVE;
-                        }
-
-                        if(sphere.PLAYER_COLOR == player.PLAYER_COLOR)
-                        {
-                            allPossibleMoves.add(
-                                    new Move(sphere, location, sphere.getLocation(), type)
-                            );
-                        }
-                    }
-                }
-            }
-        }
-        return allPossibleMoves;
     }
 
     private int evaluatePosition(PylosBoard board) {
