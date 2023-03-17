@@ -6,14 +6,14 @@ import be.kuleuven.pylos.player.PylosPlayer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 public class StudentPlayerBestFit3 extends PylosPlayer{
 
-    private static final int MAX_DEPTH = 500;
+    private static final int MAX_DEPTH = 2;
     private static final int INFINITY = 1000000;
     private PylosGameSimulator simulator;
-    private PylosGameState prevState;
     @Override
     public void doMove(PylosGameIF game, PylosBoard board) {
 
@@ -60,6 +60,7 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
         //een zet te doen
         //we zoeken op die manier de bal die hij meest nodig heeft
 
+        /*
         List<PylosSphere> allSpheres = Arrays.asList(board.getSpheres(this));
         List<PylosSphere> removableSpheres = new ArrayList<>(allSpheres);
         removableSpheres.removeIf(s -> s.isReserve() || s.getLocation().hasAbove());
@@ -67,28 +68,97 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
         PylosSphere sphereToRemove;
         sphereToRemove = removableSpheres.size() == 1 ? removableSpheres.get(0) : removableSpheres.get(getRandom().nextInt(removableSpheres.size() - 1));
         game.removeSphere(sphereToRemove);
+        */
+
+        simulator = new PylosGameSimulator(game.getState(),this.PLAYER_COLOR,board);
+
+        int bestEval = -INFINITY;
+        //Move bestMove = null;
+        PylosSphere bestSphere = null;
+        int eval = 0;
+
+        for(PylosSphere sphere : Arrays.asList(board.getSpheres(this))){
+
+            if(sphere.canRemove()){
+
+                PylosLocation ploc = sphere.getLocation();
+                simulator.removeSphere(sphere);
+                eval = alphaBeta(game, board, MAX_DEPTH, -INFINITY, INFINITY, false);
+                simulator.undoRemoveFirstSphere(sphere, ploc, PylosGameState.REMOVE_FIRST, this.PLAYER_COLOR);
+
+                if (eval > bestEval) {
+                    bestEval = eval;
+                    //bestMove = move;
+                    bestSphere = sphere;
+                }
+            }
+        }
+
+        game.removeSphere(bestSphere);
     }
 
     @Override
     public void doRemoveOrPass(PylosGameIF game, PylosBoard board) {
 
-        //TODO: gewoon overgenomen van random player
-        //er bestaan strategy guides voor Pylos, we zouden daar eens moeten naar kijken.
-        //heel wat hangt af van de openingszet
-        game.pass();
+        //Zowel RemoveSecond als Pass proberen en evalueren, beste van de 2 kiezen
+        //game.pass();
+
+        simulator = new PylosGameSimulator(game.getState(),this.PLAYER_COLOR,board);
+
+        //CHECK REMOVESECOND
+        int bestEval = -INFINITY;
+        //Move bestMove = null;
+        PylosSphere bestSphere = null;
+        int eval = 0;
+        int eval2 = 0;
+
+        for(PylosSphere sphere : Arrays.asList(board.getSpheres(this))){
+
+            if(sphere.canRemove()){
+
+                PylosLocation ploc = sphere.getLocation();
+                simulator.removeSphere(sphere);
+                eval = alphaBeta(game, board, MAX_DEPTH, -INFINITY, INFINITY, false);
+                simulator.undoRemoveSecondSphere(sphere, ploc, PylosGameState.REMOVE_SECOND, this.PLAYER_COLOR);
+
+                if (eval > bestEval) {
+                    bestEval = eval;
+                    //bestMove = move;
+                    bestSphere = sphere;
+                }
+            }
+        }
+
+        //CHECK PASS
+        simulator.pass();
+        eval2 = alphaBeta(game, board, MAX_DEPTH, -INFINITY, INFINITY, false);
+        simulator.undoPass(PylosGameState.REMOVE_SECOND, this.PLAYER_COLOR);
+
+        if(eval >= eval2 && bestSphere != null){
+            game.removeSphere(bestSphere);
+        }
+        else{
+            game.pass();
+        }
+
     }
 
     private int alphaBeta(PylosGameIF game, PylosBoard board, int depth, int alpha, int beta, boolean maximizingPlayer) {
 
-        prevState = simulator.getState();
+        PylosPlayerColor beforeMove = null;
+        PylosPlayerColor afterMove = null;
+
         int eval = 0;
-        boolean isReserve;
 
         if (depth == 0 || simulator.getState() == PylosGameState.COMPLETED) {
             return evaluatePosition(board);
         }
-        //if (maximizingPlayer){
-        if (maximizingPlayer && simulator.getColor() == this.PLAYER_COLOR.other()) {
+
+        //hier opletten, 't is niet gelijk in schaak/dammen dat het altijd aan de andere speler is na elke zet
+        if (simulator.getColor() == this.PLAYER_COLOR.other()) {
+
+            PylosPlayerColor currentPlayerColor = simulator.getColor();
+
             int maxEval = -INFINITY;
 
             switch(simulator.getState()) {
@@ -97,10 +167,20 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
 
                     for (Move move : getLegalMoves(board, this.OTHER).stream().filter(s -> !s.sphere.isReserve()).collect(Collectors.toList())) {
 
-                        simulator.moveSphere(move.sphere, move.location);
-                        eval = alphaBeta(game, board, MAX_DEPTH, -INFINITY, INFINITY, false);
-                        simulator.undoMoveSphere(move.sphere, move.previousLocation, PylosGameState.MOVE, move.sphere.PLAYER_COLOR.other());
+                        try{
+                            beforeMove = simulator.getColor();
 
+                            if(move.sphere.PLAYER_COLOR == simulator.getColor())    {
+                                simulator.moveSphere(move.sphere, move.location);
+                                eval = alphaBeta(game, board, depth-1, alpha, beta, false);
+                                simulator.undoMoveSphere(move.sphere, move.previousLocation, PylosGameState.MOVE, move.sphere.PLAYER_COLOR.other());
+                            }
+
+                            afterMove = simulator.getColor();
+
+                        }catch(AssertionError ex){
+                            System.out.println(ex.toString());
+                        }
                         maxEval = Math.max(maxEval, eval);
                         alpha = Math.max(alpha, eval);
                         if (beta <= alpha) {
@@ -110,9 +190,21 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
                     //try to move reserve spheres
                     for (Move move : getLegalMoves(board, this.OTHER).stream().filter(s -> s.sphere.isReserve()).collect(Collectors.toList())) {
 
-                        simulator.moveSphere(move.sphere, move.location);
-                        eval = alphaBeta(game, board, MAX_DEPTH, -INFINITY, INFINITY, false);
-                        simulator.undoAddSphere(move.sphere, prevState, move.sphere.PLAYER_COLOR.other());
+                        try{
+
+                            beforeMove = simulator.getColor();
+
+                            if(move.sphere.PLAYER_COLOR == simulator.getColor()) {
+                                simulator.moveSphere(move.sphere, move.location);
+                                eval = alphaBeta(game, board, depth - 1, alpha, beta, false);
+                                simulator.undoAddSphere(move.sphere, PylosGameState.MOVE, move.sphere.PLAYER_COLOR.other());
+                            }
+
+                            afterMove = simulator.getColor();
+
+                        }catch(AssertionError ex){
+                            System.out.println(ex.toString());
+                        }
 
                         maxEval = Math.max(maxEval, eval);
                         alpha = Math.max(alpha, eval);
@@ -120,11 +212,49 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
                             break;
                         }
                     }
+
                     break;
 
                 case REMOVE_FIRST:
+
+                    for(PylosSphere sphere : Arrays.asList(board.getSpheres(this.OTHER))){
+
+                        if(sphere.canRemove()){
+
+                            PylosLocation ploc = sphere.getLocation();
+                            simulator.removeSphere(sphere);
+                            eval = alphaBeta(game, board, depth-1, alpha, beta, false);
+                            simulator.undoRemoveFirstSphere(sphere, ploc, PylosGameState.REMOVE_FIRST, this.PLAYER_COLOR.other());
+
+                            maxEval = Math.max(maxEval, eval);
+                            alpha = Math.max(alpha, eval);
+                            if (beta <= alpha) {
+                                break;
+                            }
+                        }
+                    }
+
                     break;
+
                 case REMOVE_SECOND:
+
+                    for(PylosSphere sphere : Arrays.asList(board.getSpheres(this.OTHER))){
+
+                        if(sphere.canRemove()){
+
+                            PylosLocation ploc = sphere.getLocation();
+                            simulator.removeSphere(sphere);
+                            eval = alphaBeta(game, board, depth-1, alpha, beta, false);
+                            simulator.undoRemoveSecondSphere(sphere, ploc, PylosGameState.REMOVE_SECOND, this.PLAYER_COLOR.other());
+
+                            maxEval = Math.max(maxEval, eval);
+                            alpha = Math.max(alpha, eval);
+                            if (beta <= alpha) {
+                                break;
+                            }
+                        }
+                    }
+
                     break;
                 //case COMPLETED:
                 //    break;
@@ -134,13 +264,11 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
             }
 
             return maxEval;
+            //return Math.max(maxEval, maxEval2);
 
         } else {
 
-            //CHECK FOR OTHER PLAYER COLOR
             int minEval = INFINITY;
-
-            if(simulator.getColor() == this.PLAYER_COLOR){
 
             switch(simulator.getState()) {
 
@@ -148,9 +276,15 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
 
                     for (Move move : getLegalMoves(board, this).stream().filter(s -> !s.sphere.isReserve()).collect(Collectors.toList())) {
 
-                        simulator.moveSphere(move.sphere, move.location);
-                        eval = alphaBeta(game, board, MAX_DEPTH, -INFINITY, INFINITY, true);
-                        simulator.undoMoveSphere(move.sphere, move.previousLocation, PylosGameState.MOVE, move.sphere.PLAYER_COLOR);
+                        try {
+
+                            simulator.moveSphere(move.sphere, move.location);
+                            eval = alphaBeta(game, board, depth-1, alpha, beta, true);
+                            simulator.undoMoveSphere(move.sphere, move.previousLocation, PylosGameState.MOVE, move.sphere.PLAYER_COLOR);
+
+                        }catch(AssertionError ex){
+                            System.out.println(ex.toString());
+                        }
 
                         minEval = Math.min(minEval, eval);
                         beta = Math.min(beta, eval);
@@ -162,9 +296,12 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
                     for (Move move : getLegalMoves(board, this).stream().filter(s -> s.sphere.isReserve()).collect(Collectors.toList())) {
 
                         try {
+
                             simulator.moveSphere(move.sphere, move.location);
-                            eval = alphaBeta(game, board, MAX_DEPTH, -INFINITY, INFINITY, true);
-                            simulator.undoAddSphere(move.sphere, prevState, move.sphere.PLAYER_COLOR);
+                            eval = alphaBeta(game, board, depth-1, alpha, beta, true);
+                            simulator.undoAddSphere(move.sphere, PylosGameState.MOVE, move.sphere.PLAYER_COLOR);
+
+                            //System.out.println("Successfully removed reserve sphere");
                         }catch(AssertionError ex){
                             System.out.println(ex.toString());
                         }
@@ -178,16 +315,57 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
                     break;
 
                 case REMOVE_FIRST:
+
+                    for(PylosSphere sphere : Arrays.asList(board.getSpheres(this))){
+
+                        if(sphere.canRemove()){
+
+                            PylosLocation ploc = sphere.getLocation();
+                            simulator.removeSphere(sphere);
+                            eval = alphaBeta(game, board, depth-1, alpha, beta, true);
+                            simulator.undoRemoveFirstSphere(sphere, ploc, PylosGameState.REMOVE_FIRST, this.PLAYER_COLOR);
+
+                            minEval = Math.min(minEval, eval);
+                            beta = Math.min(beta, eval);
+                            if (beta <= alpha) {
+                                break;
+                            }
+                        }
+                    }
+
                     break;
+
                 case REMOVE_SECOND:
+
+                    //TODO: FAILS
+
+                    for(PylosSphere sphere : Arrays.asList(board.getSpheres(this))){
+
+                        if(sphere.canRemove()){
+
+                            PylosLocation ploc = sphere.getLocation();
+                            simulator.removeSphere(sphere);
+                            eval = alphaBeta(game, board, depth-1, alpha, beta, true);
+                            simulator.undoRemoveSecondSphere(sphere, ploc, PylosGameState.REMOVE_SECOND, this.PLAYER_COLOR);
+
+                            minEval = Math.min(minEval, eval);
+                            beta = Math.min(beta, eval);
+                            if (beta <= alpha) {
+                                break;
+                            }
+                        }
+                    }
+
                     break;
                 //case COMPLETED:
                 //    break;
                 default:
                     break;
 
-            }}
+            }
+
             return minEval;
+            //return Math.min(minEval, minEval2);
         }
     }
 
@@ -199,11 +377,6 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
         List<PylosSphere> usableSpheres = new ArrayList<>();
 
         for(PylosLocation location: board.getLocations()){
-            if(location == null){
-                //hier opvangen dat elke "reserve location" eigenlijk gelijk is (niet allemaal alle ballen mee kruisen
-                //to check if van toepassing
-                System.out.println("NULL LOCATION");
-            }
             if(location.isUsable()){
                 for(PylosSphere sphere: board.getSpheres(player.PLAYER_COLOR)) {
                     if(sphere.canMoveTo(location)) {
@@ -237,7 +410,9 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
         //we trekken het aantal zwarte spheres die nog op het bord liggen af van de witte
         //hoe minder witte spheres, hoe beter want dan moet zwart vroeger alles op 't bord leggen en winnen wij uiteindelijk
         //deze score moet natuurlijk uiteindelijk rekening houden met vierkanten die gemaakt kunnen worden en dergelijke
+
         return board.getSpheres(this).length - board.getSpheres(this.OTHER).length;
+        //return (-15 + new Random().nextInt(31));
     }
 
 }
