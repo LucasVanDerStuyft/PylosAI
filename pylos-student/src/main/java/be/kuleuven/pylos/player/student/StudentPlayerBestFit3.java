@@ -2,7 +2,9 @@ package be.kuleuven.pylos.player.student;
 
 import be.kuleuven.pylos.game.*;
 import be.kuleuven.pylos.player.PylosPlayer;
+import be.kuleuven.pylos.player.codes.PylosPlayerBestFit;
 
+import java.lang.reflect.Array;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -13,6 +15,7 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
     private PylosGameSimulator simulator;
     private boolean debugInfo = false;
     private int randomSeed = 100;
+    private boolean useRandimization = false;
     @Override
     public void doMove(PylosGameIF game, PylosBoard board) {
 
@@ -29,7 +32,12 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
         for(PylosSphere sphere : Arrays.asList(board.getSpheres(this)).stream().filter(x -> !x.isReserve()).collect(Collectors.toList())){
 
             List<PylosLocation> allUsableLocations = Arrays.asList(board.getLocations()).stream().filter(x -> x.isUsable()).collect(Collectors.toList());
-            Collections.shuffle(allUsableLocations, new Random(randomSeed));
+            if(useRandimization) {
+                Collections.shuffle(allUsableLocations, new Random(randomSeed));
+            }
+            else{
+                sortZorMaxInSquare(allUsableLocations, this);
+            }
 
             for(PylosLocation location : allUsableLocations){
 
@@ -51,7 +59,12 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
 
         //try to move reserve spheres
         List<PylosLocation> allUsableLocations = Arrays.asList(board.getLocations()).stream().filter(x -> x.isUsable()).collect(Collectors.toList());
-        Collections.shuffle(allUsableLocations, new Random(randomSeed));
+        if(useRandimization) {
+            Collections.shuffle(allUsableLocations, new Random(randomSeed));
+        }
+        else{
+            sortZorMaxInSquare(allUsableLocations, this);
+        }
 
         for(PylosLocation location : allUsableLocations){
 
@@ -83,11 +96,13 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
         int bestEval = -INFINITY;
         PylosSphere bestSphere = null;
 
-        //List<PylosSphere> usableSpheres = Arrays.asList(board.getSpheres(this));
-        //Collections.shuffle(usableSpheres);
+        List<PylosSphere> usableSpheres = Arrays.asList(board.getSpheres(this));
+        if(useRandimization){
+            Collections.shuffle(usableSpheres);
+        }
 
-        //for(PylosSphere sphere : usableSpheres){
-        for(PylosSphere sphere : Arrays.asList(board.getSpheres(this))){
+        for(PylosSphere sphere : usableSpheres){
+        //for(PylosSphere sphere : Arrays.asList(board.getSpheres(this))){
 
             if(sphere.canRemove()){
 
@@ -157,7 +172,8 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
         int eval = 0;
 
         if (depth == 0 || simulator.getState() == PylosGameState.COMPLETED) {
-            return evaluatePosition(board);
+            //return evaluatePosition(board);
+            return evaluatePosition(board, game);
         }
 
         //hier opletten, 't is niet zoals in schaak/dammen dat het altijd aan de andere speler is na elke zet
@@ -175,7 +191,12 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
                     for(PylosSphere sphere : Arrays.asList(board.getSpheres(this)).stream().filter(x -> !x.isReserve()).collect(Collectors.toList())){
 
                         List<PylosLocation> allUsableLocations = Arrays.asList(board.getLocations()).stream().filter(x -> x.isUsable()).collect(Collectors.toList());
-                        Collections.shuffle(allUsableLocations, new Random(randomSeed));
+                        if(useRandimization) {
+                            Collections.shuffle(allUsableLocations, new Random(randomSeed));
+                        }
+                        else{
+                            sortZorMaxInSquare(allUsableLocations, this);
+                        }
 
                         for(PylosLocation location : allUsableLocations){
 
@@ -198,7 +219,12 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
 
                     //try to move reserve spheres
                     List<PylosLocation> allUsableLocations = Arrays.asList(board.getLocations()).stream().filter(x -> x.isUsable()).collect(Collectors.toList());
-                    Collections.shuffle(allUsableLocations, new Random(randomSeed));
+                    if(useRandimization) {
+                        Collections.shuffle(allUsableLocations, new Random(randomSeed));
+                    }
+                    else{
+                        sortZorMaxInSquare(allUsableLocations, this);
+                    }
 
                     for(PylosLocation location : allUsableLocations){
                     //for(PylosLocation location : Arrays.asList(board.getLocations()).stream().filter(x -> x.isUsable()).collect(Collectors.toList())){
@@ -284,7 +310,12 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
                     for(PylosSphere sphere : Arrays.asList(board.getSpheres(this.OTHER)).stream().filter(x -> !x.isReserve()).collect(Collectors.toList())){
 
                         List<PylosLocation> allUsableLocations = Arrays.asList(board.getLocations()).stream().filter(x -> x.isUsable()).collect(Collectors.toList());
-                        Collections.shuffle(allUsableLocations, new Random(randomSeed));
+                        if(useRandimization) {
+                            Collections.shuffle(allUsableLocations, new Random(randomSeed));
+                        }
+                        else{
+                            sortZorMaxInSquare(allUsableLocations, this.OTHER);
+                        }
 
                         for(PylosLocation location : allUsableLocations){
 
@@ -308,7 +339,12 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
 
                     //try to move reserve spheres
                     List<PylosLocation> allUsableLocations = Arrays.asList(board.getLocations()).stream().filter(x -> x.isUsable()).collect(Collectors.toList());
-                    Collections.shuffle(allUsableLocations, new Random(randomSeed));
+                    if(useRandimization) {
+                        Collections.shuffle(allUsableLocations, new Random(randomSeed));
+                    }
+                    else{
+                        sortZorMaxInSquare(allUsableLocations, this.OTHER);
+                    }
 
                     for(PylosLocation location : allUsableLocations){
                         //for(PylosLocation location : Arrays.asList(board.getLocations()).stream().filter(x -> x.isUsable()).collect(Collectors.toList())){
@@ -384,7 +420,7 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
         }
     }
 
-    private int evaluatePosition(PylosBoard board) {
+    private int evaluatePositionOrig(PylosBoard board) {
 
         //momenteel een zeer simpele functie om te testen
         //we trekken het aantal zwarte spheres die nog op het bord liggen af van de witte
@@ -415,9 +451,87 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
         //return board.getReservesSize(PLAYER_COLOR) - board.getReservesSize(PLAYER_COLOR.other());
     }
 
+    private int evaluatePosition(PylosBoard board, PylosGameIF game) {
+
+        //int weightReserveSpheres = 15;
+        //int weightReserveSpheres = 12;
+        int weightReserveSpheres = 12;
+        int weight4SpheresInSquare = 100;
+        int weight3SpheresInSquare = 50;
+        int weight2SpheresInSquare = 10;
+        int weightEnemyHigherZ = 5;
+        int weightOurHigherZ = 5;
+        int weightOurLevel0 = 5;
+        int weightEnemyLevel0 = 5;
+        int weightOurLevel1= 5;
+        int weightEnemyLevel1 = 5;
+        int weightOurLevel2 = 15;
+        int weightEnemyLevel2 = 15;
+        int weightOurLevel3 = 25;
+        int weightEnemyLevel3 = 25;
+
+        int scoreReserveSpheres = weightReserveSpheres * (board.getReservesSize(PLAYER_COLOR) - board.getReservesSize(PLAYER_COLOR.other()));
+
+        List<PylosLocation> allUsableLocations = Arrays.asList(board.getLocations()).stream().filter(x -> x.isUsable()).collect(Collectors.toList());
+
+        int ourSquares_4 = weight4SpheresInSquare * countSpheresInSquares(allUsableLocations, this, 4);
+        int enemySquares_4 = weight4SpheresInSquare * countSpheresInSquares(allUsableLocations, this.OTHER, 4);
+        int ourSquares_3 = weight3SpheresInSquare * countSpheresInSquares(allUsableLocations, this, 3);
+        int enemySquares_3 = weight3SpheresInSquare * countSpheresInSquares(allUsableLocations, this.OTHER, 3);
+        int ourSquares_2 = weight2SpheresInSquare * countSpheresInSquares(allUsableLocations, this,2);
+        int enemySquares_2 = weight2SpheresInSquare * countSpheresInSquares(allUsableLocations, this.OTHER,2);
+
+        //int ourMaxZ = weightEnemyHigherZ * getMaxZorMaxInSquare(allUsableLocations, this).Z;
+        //int enemyMaxZ = weightOurHigherZ * getMaxZorMaxInSquare(allUsableLocations, this.OTHER).Z;
+
+        //we moeten hier iets verzinnen dat een betere score geeft als we een bal hoger kunnen leggen
+        int ourSpheresLevel0 = weightOurLevel0 * countSpheresOnLevel(Arrays.asList(board.getSpheres(this)), 1);
+        int enemySpheresLevel0 = weightEnemyLevel0 * countSpheresOnLevel(Arrays.asList(board.getSpheres(this.OTHER)), 1);
+        int ourSpheresLevel1 = weightOurLevel1 * countSpheresOnLevel(Arrays.asList(board.getSpheres(this)), 2);
+        int enemySpheresLevel1 = weightEnemyLevel1 * countSpheresOnLevel(Arrays.asList(board.getSpheres(this.OTHER)), 2);
+        int ourSpheresLevel2 = weightOurLevel2 * countSpheresOnLevel(Arrays.asList(board.getSpheres(this)), 3);
+        int enemySpheresLevel2 = weightEnemyLevel2 * countSpheresOnLevel(Arrays.asList(board.getSpheres(this.OTHER)), 3);
+        int ourSpheresLevel3 = weightOurLevel3 * countSpheresOnLevel(Arrays.asList(board.getSpheres(this)), 4);
+        int enemySpheresLevel3 = weightEnemyLevel3 * countSpheresOnLevel(Arrays.asList(board.getSpheres(this.OTHER)), 4);
+
+
+        //int centerMarbles = countMarblesInSquare(board, CENTER_X, CENTER_Y);
+        //int outerMarbles = countMarblesInSquare(board, OUTER_X, OUTER_Y);
+        //score += centerMarbles * 5;
+        //score += outerMarbles * 2;
+        //openingszet in 't midden belonen
+        //int board_stability = 50 * allUsableLocations.stream().filter(l -> l.X > 0 && l.X < 4 && l.Y >0 && l.Y < 4).collect(Collectors.toList()).size();
+
+        int our_center_spheres = Arrays.stream(board.getSpheres(this)).filter(s-> !s.isReserve() && s.getLocation().X > 0 && s.getLocation().X < 4 && s.getLocation().Y >0 && s.getLocation().Y < 4 && s.getLocation().Z == 0).collect(Collectors.toList()).size();
+        int enemy_center_spheres = Arrays.stream(board.getSpheres(this.OTHER)).filter(s -> !s.isReserve() && s.getLocation().X > 0 && s.getLocation().X < 4 && s.getLocation().Y >0 && s.getLocation().Y < 4 && s.getLocation().Z == 0).collect(Collectors.toList()).size();
+
+        int board_stability = (our_center_spheres - enemy_center_spheres);
+        board_stability = 0;
+
+
+        int finalScore = scoreReserveSpheres +
+                         ourSquares_4 + ourSquares_3 + ourSquares_2 - enemySquares_4 - enemySquares_3 - enemySquares_2
+                         + ourSpheresLevel0 + ourSpheresLevel1 + ourSpheresLevel2 + ourSpheresLevel3 - enemySpheresLevel0 - enemySpheresLevel1 - enemySpheresLevel2 - enemySpheresLevel3
+                         + board_stability;
+
+
+        //OVERBODIG DENK IK
+        /*
+        if(game.getWinner() == this){
+            finalScore += 1000;
+        }
+        else if(game.getWinner() == this.OTHER){
+            finalScore -= 1000;
+        }
+        */
+
+
+        return finalScore;
+    }
+
     public List<PylosLocation> searchForSquares(List<PylosLocation> allowedLocations, PylosPlayer player){
 
-        List<PylosLocation> result =new ArrayList<>();
+        List<PylosLocation> result = new ArrayList<>();
         for (PylosLocation l : allowedLocations){
             for (PylosSquare square : l.getSquares()){
                 if (square.getInSquare(player)==3){
@@ -427,6 +541,65 @@ public class StudentPlayerBestFit3 extends PylosPlayer{
         }
         return result;
     }
+
+    public int countSpheresInSquares(List<PylosLocation> allowedLocations, PylosPlayer player, int amount){
+
+        List<PylosLocation> result =new ArrayList<>();
+        for (PylosLocation l : allowedLocations){
+            for (PylosSquare square : l.getSquares()){
+                if (square.getInSquare(player)==amount){
+                    result.add(l);
+                }
+            }
+        }
+        return result.size();
+    }
+
+    public int countSpheresOnLevel(List<PylosSphere> spheres, int level){
+
+        int count = 0;
+        for(PylosSphere sphere : spheres.stream().filter(x -> !x.isReserve()).collect(Collectors.toList())){
+
+            if(sphere.getLocation().Z == level){
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private PylosLocation getMaxInSquare(List<PylosLocation> locations, PylosPlayer player) {
+        return Collections.max(locations, new Comparator<PylosLocation>() {
+            @Override
+            public int compare(PylosLocation o1, PylosLocation o2) {
+                return Integer.compare(o1.getMaxInSquare(player), o2.getMaxInSquare(player));
+            }
+        });
+    }
+
+    private void sortZorMaxInSquare(List<PylosLocation> locations, PylosPlayer player) {
+        Collections.sort(locations, new Comparator<PylosLocation>() {
+            @Override
+            public int compare(PylosLocation o1, PylosLocation o2) {
+                int compZ = -Integer.compare(o1.Z, o2.Z);
+                if (compZ != 0) return compZ;
+                return -Integer.compare(o1.getMaxInSquare(player), o2.getMaxInSquare(player));
+            }
+        });
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     //mogelijke vierkanten van eigen team
     /*
