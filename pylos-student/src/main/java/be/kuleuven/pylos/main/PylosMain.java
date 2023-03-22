@@ -10,8 +10,6 @@ import be.kuleuven.pylos.player.codes.PylosPlayerBestFit;
 import be.kuleuven.pylos.player.codes.PylosPlayerMiniMax;
 import be.kuleuven.pylos.player.codes.PylosPlayerRandomFit;
 import be.kuleuven.pylos.player.student.StudentPlayerBestFit;
-import be.kuleuven.pylos.player.student.StudentPlayerBestFit2;
-import be.kuleuven.pylos.player.student.StudentPlayerBestFit3;
 import be.kuleuven.pylos.player.student.StudentPlayerRandomFit;
 
 import java.util.Random;
@@ -55,14 +53,14 @@ public class PylosMain {
 
 	public void startBattle() {
 		//PylosPlayer playerLight = new StudentPlayerRandomFit();
-		PylosPlayer playerLight = new StudentPlayerBestFit3();
+		PylosPlayer playerLight = new StudentPlayerBestFit();
 
 		//PylosPlayer playerDark = new PylosPlayerRandomFit();
-		PylosPlayer playerDark = new PylosPlayerBestFit();
-		//PylosPlayer playerDark = new PylosPlayerMiniMax(2);
+		//PylosPlayer playerDark = new PylosPlayerBestFit();
+		PylosPlayer playerDark = new PylosPlayerMiniMax(2);
 
-		//Battle.play(playerLight, playerDark, 100);
-		Battle.play(playerLight, playerDark, 50);
+		Battle.play(playerLight, playerDark, 100);
+		//Battle.play(playerLight, playerDark, 50);
 		//Battle.play(playerLight, playerDark, 30);
 		//Battle.play(playerLight, playerDark, 10);
 	}
