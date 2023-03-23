@@ -11,7 +11,7 @@ public class StudentPlayerBestFit extends PylosPlayer{
     private static final int INFINITY = 1000000;
     private PylosGameSimulator simulator;
     private boolean debugInfo = false;
-    private int randomSeed = 100;
+    private int randomSeed = 0;
     private boolean useRandimization = false;
     @Override
     public void doMove(PylosGameIF game, PylosBoard board) {
@@ -73,11 +73,8 @@ public class StudentPlayerBestFit extends PylosPlayer{
                 bestSphere = reserveSphere;
             }
         }
-        //try {
-            game.moveSphere(bestSphere, bestLocation);
-        //}catch(Exception ex){
-        //    System.out.println(ex.toString());
-        //}
+
+        game.moveSphere(bestSphere, bestLocation);
     }
 
     @Override
@@ -145,7 +142,7 @@ public class StudentPlayerBestFit extends PylosPlayer{
         eval2 = alphaBeta(game, board, MAX_DEPTH, -INFINITY, INFINITY, false);
         simulator.undoPass(PylosGameState.REMOVE_SECOND, this.PLAYER_COLOR);
 
-        if(eval >= eval2 && bestSphere != null){
+        if(eval >= 1.5 * eval2 && bestSphere != null){
             game.removeSphere(bestSphere);
         }
         else{
@@ -162,11 +159,10 @@ public class StudentPlayerBestFit extends PylosPlayer{
         int eval = 0;
 
         if (depth == 0 || simulator.getState() == PylosGameState.COMPLETED) {
-            //return evaluatePosition(board);
             return evaluatePosition(board, game);
         }
 
-        //hier opletten, 't is niet zoals in schaak/dammen dat het altijd aan de andere speler is na elke zet
+        //evaluate which player has the turn every time, as same player can have the turn twice in a row
         if (simulator.getColor() == this.PLAYER_COLOR) {
         //if(maximizingPlayer){
 
@@ -451,11 +447,8 @@ public class StudentPlayerBestFit extends PylosPlayer{
         int openingMove = 0;
         int board_stability = 0;
 
-
         int sabotageScore = evaluateSphereLocations(Arrays.asList(board.getSpheres(this)));
         //sabotageScore -= evaluateSphereLocations(Arrays.asList(board.getSpheres(this.OTHER)));
-
-
 
         int finalScore = scoreReserveSpheres +
                          ourSquares_4 + ourSquares_3 + ourSquares_2 - enemySquares_4 - enemySquares_3 - enemySquares_2
@@ -525,5 +518,3 @@ public class StudentPlayerBestFit extends PylosPlayer{
     }
 
 }
-
-
